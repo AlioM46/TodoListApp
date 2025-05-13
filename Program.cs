@@ -8,6 +8,8 @@ using TodoListApi.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+// Edited
 // Add services to the container.
 
 builder.Services.AddDbContext<AppDbContext>((options) =>
