@@ -16,16 +16,15 @@ namespace TodoListApi.Models
         [EmailAddress]
         [Column(TypeName = "nvarchar(100)")]
         [Required]
-
         public string Email { get; set; }
+
+
         [Column(TypeName = "nvarchar(40)")]
         [Required]
-
         public string Username { get; set; }
 
         [Range(4,20)]
         [Required]
-
         public string HashedPassword { get; set; }
         public DateTime JoinDate { get; set; } = DateTime.UtcNow;
 

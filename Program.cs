@@ -4,7 +4,9 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
 using TodoListApi.Data;
+using TodoListApi.Interfaces;
 using TodoListApi.Options;
+using TodoListApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,16 @@ builder.Services.AddDbContext<AppDbContext>((options) =>
 });
 
 // ------------------- Extract Appsettings.json to "jwtOptions" + DI the jwtOptions Class  -------------------- \\ 
+
+
+// Inject Services
+
+builder.Services.AddScoped<IUser, UserServices>();
+builder.Services.AddScoped<IAuthentication, AuthenticationServices>();
+builder.Services.AddScoped<ITask, TaskServices>();
+
+
+
 
 var jwtOptions = builder.Configuration.GetSection("JWT").Get<JwtOptions>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JWT"));
