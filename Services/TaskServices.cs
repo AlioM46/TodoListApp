@@ -11,17 +11,17 @@ namespace TodoListApi.Services
 
    
 
-        public async Task<Message> AddTask(TaskRequestDto taskRequestInfo)
+        public async Task<Message<object>> AddTask(TaskRequestDto taskRequestInfo)
         {
             if (taskRequestInfo == null)
-                return new Message { IsSuccess = false, Information = "Task data is empty." };
+                return new Message<object> { IsSuccess = false, Information = "Task data is empty." };
 
             if (string.IsNullOrWhiteSpace(taskRequestInfo.Title) || string.IsNullOrWhiteSpace(taskRequestInfo.Description))
-                return new Message { IsSuccess = false, Information = "Title and Description are required." };
+                return new Message<object> { IsSuccess = false, Information = "Title and Description are required." };
 
             bool userExists = await _dbContext.Users.AnyAsync(u => u.Id == taskRequestInfo.UserId);
             if (!userExists)
-                return new Message { IsSuccess = false, Information = "User does not exist." };
+                return new Message<object> { IsSuccess = false, Information = "User does not exist." };
 
             var newTask = new Models.Task
             {
@@ -35,25 +35,25 @@ namespace TodoListApi.Services
             int rows = await _dbContext.SaveChangesAsync();
 
             if (rows > 0)
-                return new Message { IsSuccess = true, Information = "Task created successfully." };
+                return new Message<object> { IsSuccess = true, Information = "Task created successfully." };
 
-            return new Message { IsSuccess = false, Information = "Failed to create task." };
+            return new Message<object> { IsSuccess = false, Information = "Failed to create task." };
         }
 
-        public async Task<Message> DeleteTask(int taskId)
+        public async Task<Message<object>> DeleteTask(int taskId)
         {
             var task = await _dbContext.Tasks.FindAsync(taskId);
 
             if (task == null)
-                return new Message { IsSuccess = false, Information = "Task not found." };
+                return new Message<object> { IsSuccess = false, Information = "Task not found." };
 
             _dbContext.Tasks.Remove(task);
             int rows = await _dbContext.SaveChangesAsync();
 
             if (rows > 0)
-                return new Message { IsSuccess = true, Information = "Task deleted successfully." };
+                return new Message<object> { IsSuccess = true, Information = "Task deleted successfully." };
 
-            return new Message { IsSuccess = false, Information = "Failed to delete task." };
+            return new Message<object> { IsSuccess = false, Information = "Failed to delete task." };
         }
 
         public async Task<TaskResponseDto> FindTask(int taskId)
@@ -97,22 +97,22 @@ namespace TodoListApi.Services
             return tasks;
         }
 
-        public async Task<Message> UpdateTask(int taskId, TaskRequestDto taskRequestInfo)
+        public async Task<Message<object>> UpdateTask(int taskId, TaskRequestDto taskRequestInfo)
         {
             if (taskRequestInfo == null)
-                return new Message { IsSuccess = false, Information = "Task data is empty." };
+                return new Message<object> { IsSuccess = false, Information = "Task data is empty." };
 
             if (string.IsNullOrWhiteSpace(taskRequestInfo.Title) || string.IsNullOrWhiteSpace(taskRequestInfo.Description))
-                return new Message { IsSuccess = false, Information = "Title and Description are required." };
+                return new Message<object> { IsSuccess = false, Information = "Title and Description are required." };
 
             var task = await _dbContext.Tasks.FindAsync(taskId);
 
             if (task == null)
-                return new Message { IsSuccess = false, Information = "Task not found." };
+                return new Message<object> { IsSuccess = false, Information = "Task not found." };
 
             bool userExists = await _dbContext.Users.AnyAsync(u => u.Id == taskRequestInfo.UserId);
             if (!userExists)
-                return new Message { IsSuccess = false, Information = "User does not exist." };
+                return new Message<object> { IsSuccess = false, Information = "User does not exist." };
 
             task.Title = taskRequestInfo.Title;
             task.Description = taskRequestInfo.Description;
@@ -124,9 +124,9 @@ namespace TodoListApi.Services
             int rows = await _dbContext.SaveChangesAsync();
 
             if (rows > 0)
-                return new Message { IsSuccess = true, Information = "Task updated successfully." };
+                return new Message<object> { IsSuccess = true, Information = "Task updated successfully." };
 
-            return new Message { IsSuccess = false, Information = "Failed to update task." };
+            return new Message<object> { IsSuccess = false, Information = "Failed to update task." };
         }
     }
 }

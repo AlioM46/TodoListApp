@@ -4,14 +4,14 @@ namespace TodoListApi.Interfaces
 {
     public interface ITask
     {
-        Task<Message> AddTask(TaskRequestDto taskRequestInfo);
+        Task<Message<object>> AddTask(TaskRequestDto taskRequestInfo);
 
 
 
 
-        Task<Message> DeleteTask(int taskId);
+        Task<Message<object>> DeleteTask(int taskId);
 
-        Task<Message> UpdateTask(int taskId, TaskRequestDto taskRequestInfo);
+        Task<Message<object>> UpdateTask(int taskId, TaskRequestDto taskRequestInfo);
     
         Task<TaskResponseDto> FindTask(int taskId);
 

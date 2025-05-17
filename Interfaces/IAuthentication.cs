@@ -8,5 +8,7 @@ namespace TodoListApi.Interfaces
         Task<Message<LoginResponseDto>> Register(UserRequestDto registerRequestInfo);
 
         Task<bool> Logout();
-    }
+
+        Task<string> RefreshToken(string refreshToken);
+    } 
 }

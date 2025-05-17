@@ -1,10 +1,11 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
 using TodoListApi.Data;
 using TodoListApi.Interfaces;
+using TodoListApi.Middleware;
 using TodoListApi.Options;
 using TodoListApi.Services;
 
@@ -48,7 +49,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
           ValidateLifetime = true,
           ValidateIssuerSigningKey = true,
           ClockSkew = TimeSpan.Zero, // strict expiration
-
           ValidIssuer = jwtOptions.Issuer,
           ValidAudience = jwtOptions.Audience,
           IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey))
@@ -66,6 +66,7 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -74,7 +75,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+app.UseAuthentication(); // 🔐 JWT must be authenticated first
+
+app.UseMiddleware<ForbidNonActiveMiddleware>(); // 👮 Your custom logic
+
+app.UseAuthorization(); // 🔒 Checks roles/policies/claims
 
 app.MapControllers();
 

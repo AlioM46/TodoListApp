@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using TodoListApi.DTOs;
 using TodoListApi.Interfaces;
 
@@ -6,6 +7,8 @@ namespace TodoListApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = $"{nameof(Enums.enRoles.User)}, {nameof(Enums.enRoles.Admin)}")]
+
     public class TasksController(ITask _taskService) : ControllerBase
     {
 

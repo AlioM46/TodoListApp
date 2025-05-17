@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,28 +15,43 @@ using TodoListApi.Options;
 
 namespace TodoListApi.Services
 {
-    public class AuthenticationServices(AppDbContext _dbContext, JwtOptions _jwtSettings, IUser _userService) : IAuthentication
+    public class AuthenticationServices(AppDbContext _dbContext, IOptions<JwtOptions> _jwtSettings, IUser _userService) : IAuthentication
     {
 
         PasswordHasher<LoginRequestDto> passwordHasher = new();
         public async Task<Message<LoginResponseDto>> Login(LoginRequestDto loginRequestInfo)
         {
-            if (loginRequestInfo == null || string.IsNullOrEmpty(loginRequestInfo.Username) || string.IsNullOrEmpty(loginRequestInfo.Password))
+            if (loginRequestInfo == null || string.IsNullOrWhiteSpace(loginRequestInfo.Username) || string.IsNullOrWhiteSpace(loginRequestInfo.Password))
             {
-                return new Message<LoginResponseDto> { IsSuccess = false, Information = "Invalid Credentials!" };
+                return new Message<LoginResponseDto> { IsSuccess = false, Information = "Invalid credentials!" };
             }
 
+            string normalizedUsername = loginRequestInfo.Username.Trim().ToLower();
 
-            var NewHashedPassword = passwordHasher.HashPassword(loginRequestInfo, loginRequestInfo.Password);
-            var userInfo = await _dbContext.Users.FirstOrDefaultAsync((e) => e.Username == loginRequestInfo.Username && e.HashedPassword == NewHashedPassword);
+            var userInfo = await _dbContext.Users
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == normalizedUsername);
 
             if (userInfo == null)
             {
-                return new Message<LoginResponseDto> { Information = "login has failed, try again later.", IsSuccess = false };
-
+                return new Message<LoginResponseDto> { IsSuccess = false, Information = "Login failed: user not found." };
             }
-            return new Message<LoginResponseDto> { Information = "you have logged in successfully.", Data = GenerateLoginResponse(userInfo) };
+
+            var passwordVerificationResult = passwordHasher.VerifyHashedPassword(
+                loginRequestInfo, userInfo.HashedPassword, loginRequestInfo.Password);
+
+            if (passwordVerificationResult == PasswordVerificationResult.Failed)
+            {
+                return new Message<LoginResponseDto> { IsSuccess = false, Information = "Login failed: incorrect password." };
+            }
+
+            return new Message<LoginResponseDto>
+            {
+                IsSuccess = true,
+                Information = "You have logged in successfully.",
+                Data = await GenerateLoginResponse(userInfo)
+            };
         }
+
 
         public async Task<bool> Logout()
         {
@@ -47,24 +63,25 @@ namespace TodoListApi.Services
             var result = await _userService.AddUser(registerRequestInfo);
             if (!result.IsSuccess)
             {
-                return new Message<LoginResponseDto> {IsSuccess = false, Information = result.Information};
+                return new Message<LoginResponseDto> { IsSuccess = false, Information = result.Information };
             }
 
             var newUser = await _dbContext.Users.FindAsync(result.Data);
 
-            if (newUser == null) {
+            if (newUser == null)
+            {
                 return new Message<LoginResponseDto> { IsSuccess = false, Information = "user is not found." };
             }
 
-            return new Message<LoginResponseDto> { IsSuccess = true, Information= "you have registered successfully.", Data = GenerateLoginResponse(newUser)};
+            return new Message<LoginResponseDto> { IsSuccess = true, Information = "you have registered successfully.", Data = await GenerateLoginResponse(newUser) };
         }
 
 
-        private async Task<User> ValidateRefreshToken(string RefreshToken, int userId)
+        private async Task<User> ValidateRefreshToken(string RefreshToken)
         {
-            var user = await _dbContext.Users.FindAsync(userId);
+            var user = await _dbContext.Users.FirstOrDefaultAsync((u) => u.RefreshToken == RefreshToken);
 
-            if (user == null || user.RefreshToken != RefreshToken || user.RefreshTokenExpiryTime >= DateTime.UtcNow)
+            if (user == null || user.RefreshToken != RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow || !user.IsActive)
             {
                 return null;
             }
@@ -73,9 +90,9 @@ namespace TodoListApi.Services
 
         }
         // Refresh token is send by the front-end after store it in cookies.
-        public async Task<string> RefreshToken(string RefreshToken, int userId)
+        public async Task<string> RefreshToken(string RefreshToken)
         {
-            User userInfo = await ValidateRefreshToken(RefreshToken, userId);
+            User userInfo = await ValidateRefreshToken(RefreshToken);
 
             if (userInfo == null)
             {
@@ -87,14 +104,17 @@ namespace TodoListApi.Services
         }
 
 
-        private LoginResponseDto GenerateLoginResponse(User userInfo)
+        private async Task<LoginResponseDto >GenerateLoginResponse(User userInfo)
         {
             string RefreshToken = GenerateRefreshToken();
 
             userInfo.RefreshToken = RefreshToken;
             userInfo.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
+            await _dbContext.SaveChangesAsync();
+
             string AccessToken = GenerateAccessToken(userInfo);
+            
 
 
             return new LoginResponseDto { AccessToken = AccessToken, RefreshToken = RefreshToken };
@@ -104,22 +124,24 @@ namespace TodoListApi.Services
 
         private string GenerateAccessToken(User userInfo)
         {
+
             var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userInfo.Id.ToString()),
             new Claim(ClaimTypes.Name, userInfo.Username),
             new Claim(ClaimTypes.Role, userInfo.Role.ToString()),
+            new Claim("IsActive", userInfo.IsActive.ToString()),
             // Add roles or custom claims if needed
         };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SigningKey));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Value.SigningKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: _jwtSettings.Issuer,
-                audience: _jwtSettings.Audience,
+                issuer: _jwtSettings.Value.Issuer,
+                audience: _jwtSettings.Value.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(5),
+expires: DateTime.UtcNow.AddMinutes(_jwtSettings.Value.ExpiryMinutes),
                 signingCredentials: creds
             );
 
