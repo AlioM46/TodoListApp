@@ -99,7 +99,7 @@ namespace TodoListApi.Services
                 return null;
             }
 
-            return GenerateAccessToken(userInfo);
+            return GenerateAccessToken(userInfo, RefreshToken);
 
         }
 
@@ -113,7 +113,7 @@ namespace TodoListApi.Services
 
             await _dbContext.SaveChangesAsync();
 
-            string AccessToken = GenerateAccessToken(userInfo);
+            string AccessToken = GenerateAccessToken(userInfo, RefreshToken);
             
 
 
@@ -122,7 +122,7 @@ namespace TodoListApi.Services
         }
 
 
-        private string GenerateAccessToken(User userInfo)
+        private string GenerateAccessToken(User userInfo, string RefreshToken)
         {
 
             var claims = new List<Claim>
@@ -131,6 +131,7 @@ namespace TodoListApi.Services
             new Claim(ClaimTypes.Name, userInfo.Username),
             new Claim(ClaimTypes.Role, userInfo.Role.ToString()),
             new Claim("IsActive", userInfo.IsActive.ToString()),
+            new Claim("RefreshToken", RefreshToken),
             // Add roles or custom claims if needed
         };
 

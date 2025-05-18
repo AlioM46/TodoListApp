@@ -55,5 +55,15 @@ namespace TodoListApi.Controllers
                 return Ok(result);
             return BadRequest(result);
         }
+
+         
+        [HttpGet("user-tasks/{userId}")]
+        public async Task<ActionResult<List<TaskResponseDto>>> GetUserTasks(int userId)
+        {
+            var result = await _taskService.GetUserTasks(userId);
+            return Ok(result);
+        }
+
+
     }
 }

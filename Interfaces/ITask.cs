@@ -17,5 +17,7 @@ namespace TodoListApi.Interfaces
 
         Task<List<TaskResponseDto>> GetAllTasks();
 
+        Task<List<TaskResponseDto>> GetUserTasks(int userId);
+
     }
 }

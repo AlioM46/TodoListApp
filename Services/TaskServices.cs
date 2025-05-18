@@ -128,5 +128,24 @@ namespace TodoListApi.Services
 
             return new Message<object> { IsSuccess = false, Information = "Failed to update task." };
         }
+
+
+        public async Task<List<TaskResponseDto>> GetUserTasks(int userId)
+        {
+            var tasks = await _dbContext.Tasks
+                .AsNoTracking()
+                .Select(task => new TaskResponseDto
+                {
+                    Title = task.Title,
+                    Description = task.Description,
+                    CreatedDate = task.CreatedDate,
+                    LastUpdateDate = task.LastUpdateDate,
+                    FinishDate = task.FinishDate,
+                    Status = task.Status,
+                    UserId = task.UserId
+                }).ToListAsync();
+
+            return tasks;
+        }
     }
 }
